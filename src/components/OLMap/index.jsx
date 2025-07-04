@@ -13,13 +13,18 @@ import XYZ from "ol/source/XYZ";
 import { Fill, Stroke, Style } from "ol/style";
 import { useEffect, useRef, useState } from "react";
 import DrawTools from "./Components/DrawTools";
-import MPopup from "./Popup";
+import MPopup from "./Components/Popup";
 import { LuLayers2 } from "react-icons/lu";
 import { Reportbar } from "../Reportbar";
 import Sidebar from "../Sidebar";
 import SourceVector from "./Components/Vector/Source";
 
-export default function OLMap({ onFeatureClick,  geojsonData, isReport = false, isSidebar = false, isDraw = false, ...rest }) {
+import { defaults as defaultControls, ScaleLine, FullScreen, ZoomSlider, MousePosition, Attribution } from "ol/control";
+import { createStringXY } from "ol/coordinate";
+import "./index.css"
+
+
+export default function OLMap({ onFeatureClick,  geojsonData, report = {active: false, title: "Thống kê", content: null}, sidebar = {active: false, content: null}, isDraw = false, ...rest }) {
   const mapRef = useRef();
   const popupRef = useRef();
   const [popupData, setPopupData] = useState(null);
@@ -53,6 +58,24 @@ export default function OLMap({ onFeatureClick,  geojsonData, isReport = false, 
         zoom: rest?.zoom ? rest?.zoom : 6,
       }),
       overlays: [overlay],
+      controls: defaultControls({
+        zoomOptions: {
+          className: "zoom-custom"
+        }
+      }).extend([
+        new ScaleLine(
+
+        ),
+        
+        new MousePosition({
+          coordinateFormat: createStringXY(5),
+          projection: "EPSG:4326",
+          className: "custom-mouse-position",
+        }),
+        new Attribution({
+          collapsible: false,
+        }),
+      ]),
     });
 
     olMap.on("singleclick", (evt) => {
@@ -72,7 +95,7 @@ export default function OLMap({ onFeatureClick,  geojsonData, isReport = false, 
         overlay.setPosition(coordinates);
         const props = feature.getProperties();
         setPopupData(props);
-        if (onFeatureClick) onFeatureClick(props);
+        if (onFeatureClick) onFeatureClick(feature);
       } else {
         overlay.setPosition(undefined);
         setPopupData(null);
@@ -127,10 +150,10 @@ export default function OLMap({ onFeatureClick,  geojsonData, isReport = false, 
       />
       }
       {
-        isSidebar && <Sidebar />
+        sidebar?.active && <Sidebar content={sidebar?.content}/>
       }
       {
-        isReport && <Reportbar />
+        report?.active && <Reportbar title={report?.title} content={report?.content} />
       }
 
       <div ref={mapRef} style={{ width: "100%", height: "100%" }}></div>

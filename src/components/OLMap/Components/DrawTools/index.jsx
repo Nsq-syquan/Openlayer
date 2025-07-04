@@ -482,7 +482,7 @@ const DrawTools = ({
         title="Tools"
         animate={true}
         children={allTools}
-        position={{ bottom: 12, right: 4 }}
+        position={{ bottom: 110, right: 10 }}
       />
 
       

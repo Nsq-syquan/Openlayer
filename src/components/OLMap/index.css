@@ -1,0 +1,49 @@
+/* ⚖️ ScaleLine: bottom-left */
+.custom-scale-line.ol-scale-line {
+  left: auto;
+  bottom: 100px;
+  right: 10px;
+  top: auto;
+  position: absolute;
+}
+
+/* 🔍 ZoomSlider: top-right */
+.custom-zoom-slider.ol-zoomslider {
+  top: 0px;
+  right: 10px;
+  left: auto;
+  position: absolute;
+}
+
+/* 🖱 MousePosition: bottom-right */
+.custom-mouse-position {
+  right: 10px;
+  bottom: 10px;
+  left: auto;
+  top: auto;
+  background: rgba(0, 60, 136, 0.6);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  position: absolute;
+}
+.zoom-custom {
+  bottom: 40px;
+  right: 10px;
+  left: auto;
+  position: absolute;
+}
+
+.zoom-custom :where(*) {
+  width: 30px !important;
+  height: 30px !important;
+  font-size: 20px !important;
+  border: none !important;
+  border-radius: 4px !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  background-color: white !important;
+  color: black !important;
+}

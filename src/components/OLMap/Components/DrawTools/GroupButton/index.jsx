@@ -25,7 +25,7 @@ const GroupButton = ({
         <button
           className="custom-tool-icon"
           style={{
-            borderRadius: type == "circle" ? "50%" : "6px",
+            borderRadius: type == "circle" ? "50%" : "4px",
           }}
           onClick={handleToggle}
         >
@@ -79,7 +79,7 @@ const GroupButton = ({
                         child?.active ? "active" : ""
                       } `}
                       style={{
-                        borderRadius: type == "circle" ? "50%" : "6px",
+                        borderRadius: type == "circle" ? "50%" : "4px",
                       }}
                       onClick={child?.onClick}
                     >

@@ -12,6 +12,9 @@ const Home = () => {
         geojsonData={data}
         zoom={10}
         onFeatureClick={(props) => console.log("Thông tin:", props)}
+        isReport
+        isSidebar
+        isDraw
         />
     </div>
   )

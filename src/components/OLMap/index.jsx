@@ -12,11 +12,14 @@ import VectorSource from "ol/source/Vector";
 import XYZ from "ol/source/XYZ";
 import { Fill, Stroke, Style } from "ol/style";
 import { useEffect, useRef, useState } from "react";
-import DrawTools from "./DrawTools";
+import DrawTools from "./Components/DrawTools";
 import MPopup from "./Popup";
 import { LuLayers2 } from "react-icons/lu";
+import { Reportbar } from "../Reportbar";
+import Sidebar from "../Sidebar";
+import SourceVector from "./Components/Vector/Source";
 
-export default function OLMap({ geojsonData, onFeatureClick, ...rest }) {
+export default function OLMap({ onFeatureClick,  geojsonData, isReport = false, isSidebar = false, isDraw = false, ...rest }) {
   const mapRef = useRef();
   const popupRef = useRef();
   const [popupData, setPopupData] = useState(null);
@@ -27,20 +30,6 @@ export default function OLMap({ geojsonData, onFeatureClick, ...rest }) {
 
   useEffect(() => {
     if (!popupRef.current) return;
-
-    const vectorSource = new VectorSource({
-      features: new GeoJSON().readFeatures(geojsonData, {
-        featureProjection: "EPSG:3857",
-      }),
-    });
-
-    const vectorLayer = new VectorLayer({
-      source: vectorSource,
-      style: new Style({
-        fill: new Fill({ color: "rgba(0, 123, 255, 0.3)" }),
-        stroke: new Stroke({ color: "#007bff", width: 2 }),
-      }),
-    });
 
     const overlay = new Overlay({
       element: popupRef.current,
@@ -57,8 +46,7 @@ export default function OLMap({ geojsonData, onFeatureClick, ...rest }) {
           source: new XYZ({
             url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
           }),
-        }),
-        vectorLayer,
+        })
       ],
       view: new View({
         center: fromLonLat([105.85, 21.03]),
@@ -117,7 +105,8 @@ export default function OLMap({ geojsonData, onFeatureClick, ...rest }) {
 
   return (
     <div style={{ width: "100%", height: "100%", position: "relative" }}>
-      <DrawTools
+      {
+        isDraw && <DrawTools
         map={mapInstance}
         ref={vectorDrawRef}
         activeDrawType={drawType}
@@ -134,9 +123,25 @@ export default function OLMap({ geojsonData, onFeatureClick, ...rest }) {
             }
           ]
         }
+      
       />
+      }
+      {
+        isSidebar && <Sidebar />
+      }
+      {
+        isReport && <Reportbar />
+      }
 
       <div ref={mapRef} style={{ width: "100%", height: "100%" }}></div>
+      {mapInstance && (
+                <SourceVector
+                    map={mapInstance}
+                    data={geojsonData}
+                    idSource="my-vector-source"
+                    idLayer="my-vector-layer"
+                />
+            )}
       <MPopup ref={popupRef} data={popupData} />
     </div>
   );

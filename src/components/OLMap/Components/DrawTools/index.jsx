@@ -1,22 +1,22 @@
-import { useEffect, useRef, useCallback } from "react";
-import VectorLayer from "ol/layer/Vector";
-import VectorSource from "ol/source/Vector";
+import Feature from "ol/Feature";
+import GeoJSON from "ol/format/GeoJSON";
+import LineString from "ol/geom/LineString";
+import Point from "ol/geom/Point";
+import { fromCircle } from "ol/geom/Polygon";
 import Draw from "ol/interaction/Draw";
 import Modify from "ol/interaction/Modify";
 import Snap from "ol/interaction/Snap";
-import { Style, Fill, Stroke, Circle as CircleStyle } from "ol/style";
-import GroupButton from "./GroupButton";
-import { FaRegCircle } from "react-icons/fa";
-import { TbPolygon } from "react-icons/tb";
-import { BsSlashLg } from "react-icons/bs";
-import { GrClear } from "react-icons/gr";
-import GeoJSON from "ol/format/GeoJSON";
-import { fromCircle } from "ol/geom/Polygon";
 import Translate from "ol/interaction/Translate";
+import VectorLayer from "ol/layer/Vector";
+import VectorSource from "ol/source/Vector";
+import { Circle as CircleStyle, Fill, Stroke, Style } from "ol/style";
+import { useCallback, useEffect, useRef } from "react";
+import { BsSlashLg } from "react-icons/bs";
+import { FaRegCircle } from "react-icons/fa";
+import { GrClear } from "react-icons/gr";
+import { TbPolygon } from "react-icons/tb";
+import GroupButton from "./GroupButton";
 import "./index.css";
-import LineString from "ol/geom/LineString";
-import Feature from "ol/Feature";
-import Point from "ol/geom/Point";
 
 const DRAW_LAYER_NAME = "drawLayer";
 const DRAW_LAYER_ZINDEX = 1000;
@@ -29,8 +29,8 @@ const DRAW_STYLE = new Style({
   }),
 });
 
-import { getLength, getArea } from "ol/sphere";
 import Overlay from "ol/Overlay";
+import { getArea, getLength } from "ol/sphere";
 
 const DrawTools = ({
   map,
@@ -38,6 +38,7 @@ const DrawTools = ({
   activeDrawType,
   setActiveDrawType,
   optionalTools,
+  ...rest
 }) => {
   const drawRef = useRef();
   const snapRef = useRef();
@@ -244,11 +245,30 @@ const DrawTools = ({
 
     const modify = new Modify({ source: vectorSource });
     map.addInteraction(modify);
+
+    
     modify.on("modifyend", (e) => {
       e.features.forEach(updateExportFeature); // cập nhật tất cả feature được sửa
       e.features.forEach((feature) => {
         updateStaticTooltip(feature);
         updateCenterPoint(feature);
+      });
+    });
+
+    modify.on("modifystart", (e) => {
+      e.features.forEach((feature) => {
+        const geom = feature.getGeometry();
+        if (geom.getType() === "Circle") {
+          const centerFeature = feature.get("tempCenter");
+
+          if (centerFeature) {
+            // Khi hình tròn thay đổi → cập nhật tâm
+            geom.on("change", () => {
+              const center = geom.getCenter();
+              centerFeature.setGeometry(new Point(center));
+            });
+          }
+        }
       });
     });
     modifyRef.current = modify;
@@ -456,13 +476,17 @@ const DrawTools = ({
   const allTools = [...defaultTools, ...(optionalTools || [])];
 
   return (
-    <GroupButton
-      direction="column"
-      title="Tools"
-      animate={true}
-      children={allTools}
-      position={{ bottom: 12, right: 4 }}
-    />
+    <>
+      <GroupButton
+        direction="column"
+        title="Tools"
+        animate={true}
+        children={allTools}
+        position={{ bottom: 12, right: 4 }}
+      />
+
+      
+    </>
   );
 };
 

@@ -14,6 +14,7 @@ import { Fill, Stroke, Style } from "ol/style";
 import { useEffect, useRef, useState } from "react";
 import DrawTools from "./DrawTools";
 import MPopup from "./Popup";
+import { LuLayers2 } from "react-icons/lu";
 
 export default function OLMap({ geojsonData, onFeatureClick, ...rest }) {
   const mapRef = useRef();
@@ -121,6 +122,18 @@ export default function OLMap({ geojsonData, onFeatureClick, ...rest }) {
         ref={vectorDrawRef}
         activeDrawType={drawType}
         setActiveDrawType={setDrawType}
+        optionalTools={
+          [
+            {
+              title: "Layers",
+              icon: <LuLayers2 size={20} />,
+              onClick: () => {
+                alert("Chức năng chưa có")
+              },
+             
+            }
+          ]
+        }
       />
 
       <div ref={mapRef} style={{ width: "100%", height: "100%" }}></div>

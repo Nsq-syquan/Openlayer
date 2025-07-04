@@ -13,6 +13,10 @@ import { GrClear } from "react-icons/gr";
 import GeoJSON from "ol/format/GeoJSON";
 import { fromCircle } from "ol/geom/Polygon";
 import Translate from "ol/interaction/Translate";
+import "./index.css";
+import LineString from "ol/geom/LineString";
+import Feature from "ol/Feature";
+import Point from "ol/geom/Point";
 
 const DRAW_LAYER_NAME = "drawLayer";
 const DRAW_LAYER_ZINDEX = 1000;
@@ -25,56 +29,202 @@ const DRAW_STYLE = new Style({
   }),
 });
 
-const DrawTools = ({ map, ref, activeDrawType, setActiveDrawType }) => {
+import { getLength, getArea } from "ol/sphere";
+import Overlay from "ol/Overlay";
+
+const DrawTools = ({
+  map,
+  ref,
+  activeDrawType,
+  setActiveDrawType,
+  optionalTools,
+}) => {
   const drawRef = useRef();
   const snapRef = useRef();
   const modifyRef = useRef();
   const vectorLayerRef = useRef();
   const geojsonDraw = useRef([]);
   const translateRef = useRef([]);
+  const helpTooltipRef = useRef(null);
+  const helpTooltipElementRef = useRef(null);
+  const tooltipOverlaysRef = useRef({});
+  const centerPointLayerRef = useRef();
+  const segmentOverlaysRef = useRef([]);
 
-  // Helper: Export features as GeoJSON FeatureCollection
   const exportGeoJSON = useCallback((features) => {
-    const featureCollection = {
-      type: "FeatureCollection",
-      features,
-    };
+    const featureCollection = { type: "FeatureCollection", features };
     console.log("export: ", featureCollection);
     return featureCollection;
   }, []);
 
-  // Helper: Update or add a feature in geojsonDraw.current
-  const updateExportFeature = useCallback(
-    (feature) => {
-      const id = feature.getId();
-      if (!id) return;
+  const createHelpTooltip = () => {
+    if (helpTooltipElementRef.current) helpTooltipElementRef.current.remove();
 
-      const clone = feature.clone();
-      clone.setId(id);
-      clone.set("id", id);
+    const tooltipElement = document.createElement("div");
+    tooltipElement.className = "tooltip tooltip-measure";
+    helpTooltipElementRef.current = tooltipElement;
 
-      if (clone.getGeometry().getType() === "Circle") {
-        const polygon = fromCircle(clone.getGeometry(), 64);
-        clone.setGeometry(polygon);
-        clone.set("originalType", "Circle");
-      }
+    const tooltipOverlay = new Overlay({
+      element: tooltipElement,
+      offset: [0, -15],
+      positioning: "bottom-center",
+    });
 
-      const format = new GeoJSON();
-      const geojson = format.writeFeatureObject(clone, {
-        featureProjection: "EPSG:3857",
-        dataProjection: "EPSG:4326",
+    map.addOverlay(tooltipOverlay);
+    helpTooltipRef.current = tooltipOverlay;
+  };
+
+  const updateExportFeature = useCallback((feature) => {
+    const id = feature.getId();
+    if (!id) return;
+
+    const clone = feature.clone();
+    clone.setId(id);
+    clone.set("id", id);
+
+    if (clone.getGeometry().getType() === "Circle") {
+      const polygon = fromCircle(clone.getGeometry(), 64);
+      clone.setGeometry(polygon);
+      clone.set("originalType", "Circle");
+    }
+
+    const format = new GeoJSON();
+    const geojson = format.writeFeatureObject(clone, {
+      featureProjection: "EPSG:3857",
+      dataProjection: "EPSG:4326",
+    });
+
+    const index = geojsonDraw.current.findIndex((f) => f.id === id);
+    if (index >= 0) geojsonDraw.current[index] = geojson;
+    else geojsonDraw.current.push(geojson);
+
+    exportGeoJSON(geojsonDraw.current);
+  }, [exportGeoJSON]);
+
+  const clearSegmentOverlays = () => {
+    segmentOverlaysRef.current.forEach((o) => map.removeOverlay(o));
+    segmentOverlaysRef.current = [];
+  };
+
+  const addSegmentLengths = (geom) => {
+    if (!map || !geom) return;
+    clearSegmentOverlays();
+    const coords = geom.getCoordinates();
+    const isPolygon = geom.getType() === "Polygon";
+    const lineCoords = isPolygon ? coords[0] : coords;
+
+    for (let i = 0; i < lineCoords.length - 1; i++) {
+      const p1 = lineCoords[i];
+      const p2 = lineCoords[i + 1];
+      const length = getLength(new LineString([p1, p2])).toFixed(2);
+      const mid = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
+
+      const el = document.createElement("div");
+      el.className = "tooltip tooltip-segment";
+      // el.innerHTML = `${length} m`;
+      el.innerHTML = `<div class="tooltip-label">${length} m</div>`;
+
+
+      const overlay = new Overlay({
+        element: el,
+        offset: [0, -8],
+        positioning: "bottom-center",
+        stopEvent: false,
       });
 
-      const index = geojsonDraw.current.findIndex((f) => f.id === id);
-      if (index >= 0) {
-        geojsonDraw.current[index] = geojson;
-      } else {
-        geojsonDraw.current.push(geojson);
-      }
-      exportGeoJSON(geojsonDraw.current);
-    },
-    [exportGeoJSON]
-  );
+      overlay.setPosition(mid);
+      map.addOverlay(overlay);
+      segmentOverlaysRef.current.push(overlay);
+    }
+  };
+
+  const updateStaticTooltip = (feature) => {
+    const id = feature.getId();
+    if (!id || !map) return;
+
+    let geom = feature.getGeometry();
+    let tooltipText = "";
+    let position;
+
+    if (geom.getType() === "Circle") {
+      tooltipText = `${geom.getRadius().toFixed(2)} m`;
+      position = geom.getCenter();
+    } else if (geom.getType() === "LineString") {
+      tooltipText = `Tổng: ${getLength(geom).toFixed(2)} m`;
+      const coords = geom.getCoordinates();
+      position = coords[coords.length - 1];
+      addSegmentLengths(geom);
+    } else if (geom.getType() === "Polygon") {
+      const ring = geom.getLinearRing(0);
+      const perimeter = getLength(new LineString(ring.getCoordinates())).toFixed(2);
+      const area = getArea(geom).toFixed(2);
+      // tooltipText = `Chu vi: ${perimeter} m - Diện tích: ${area} m²`;
+      tooltipText = `
+        <div class="tooltip-label">${perimeter} m</div>
+        <div class="tooltip-label">${area} m²</div>
+      `;
+
+      position = geom.getInteriorPoint().getCoordinates();
+      addSegmentLengths(ring);
+    } else return;
+
+    let overlay = tooltipOverlaysRef.current[id];
+    if (!overlay) {
+      const element = document.createElement("div");
+      element.className = "tooltip tooltip-static";
+      overlay = new Overlay({ element, offset: [0, -10], positioning: "bottom-center", stopEvent: false });
+      map.addOverlay(overlay);
+      tooltipOverlaysRef.current[id] = overlay;
+    }
+
+    overlay.getElement().innerHTML = tooltipText;
+    overlay.setPosition(position);
+  };
+
+  const updateCenterPoint = (feature) => {
+    if (!feature || !centerPointLayerRef.current) return;
+
+    const geom = feature.getGeometry();
+    if (geom.getType() !== "Circle") return;
+
+    const center = geom.getCenter();
+    const centerSource = centerPointLayerRef.current.getSource();
+
+    let centerFeature = feature.get("tempCenter");
+
+    if (!centerFeature) {
+      // Chưa có → tạo mới
+      centerFeature = new Feature(new Point(center));
+      centerSource.addFeature(centerFeature);
+      feature.set("tempCenter", centerFeature);
+    } else {
+      // Đã có → update vị trí
+      centerFeature.setGeometry(new Point(center));
+    }
+  };
+
+  useEffect(() => {
+    if (!map) return;
+
+    const layer = new VectorLayer({
+      source: new VectorSource(),
+      style: new Style({
+        image: new CircleStyle({
+          radius: 5,
+          fill: new Fill({ color: "red" }),
+          stroke: new Stroke({ color: "#fff", width: 2 }),
+        }),
+      }),
+    });
+
+    layer.setZIndex(1100);
+    map.addLayer(layer);
+    centerPointLayerRef.current = layer;
+
+    return () => {
+      map.removeLayer(layer);
+    };
+  }, [map]);
 
   // Setup vector layer and interactions once
   useEffect(() => {
@@ -96,12 +246,20 @@ const DrawTools = ({ map, ref, activeDrawType, setActiveDrawType }) => {
     map.addInteraction(modify);
     modify.on("modifyend", (e) => {
       e.features.forEach(updateExportFeature); // cập nhật tất cả feature được sửa
+      e.features.forEach((feature) => {
+        updateStaticTooltip(feature);
+        updateCenterPoint(feature);
+      });
     });
     modifyRef.current = modify;
 
     const translate = new Translate({ layers: [vectorLayer] });
     translate.on("translateend", (e) => {
       e.features.forEach(updateExportFeature);
+      e.features.forEach((feature) => {
+        updateStaticTooltip(feature);
+        updateCenterPoint(feature);
+      });
     });
     map.addInteraction(translate);
     translateRef.current.push(translate);
@@ -132,15 +290,81 @@ const DrawTools = ({ map, ref, activeDrawType, setActiveDrawType }) => {
       source: ref.current,
       type: activeDrawType,
     });
+    let sketch;
+    let centerPointFeature = null;
+    draw.on("drawstart", (e) => {
+      const feature = e.feature;
+      const geom = feature.getGeometry();
+      sketch = e.feature;
+      createHelpTooltip();
+
+      if (geom.getType() === "Circle") {
+        const tempCenter = new Feature(new Point(geom.getCenter()));
+        centerPointLayerRef.current?.getSource().addFeature(tempCenter);
+        feature.set("tempCenter", tempCenter);
+
+        geom.on("change", () => {
+          const center = geom.getCenter();
+          const f = feature.get("tempCenter");
+          if (f) f.setGeometry(new Point(center));
+        });
+      }
+
+      // Khi kéo chuột trong lúc vẽ
+      sketch.getGeometry().on("change", (evt) => {
+        const geom = evt.target;
+        const tooltip = helpTooltipElementRef.current;
+
+        if (!tooltip || !map) return;
+
+        if (geom.getType() === "Circle") {
+          const center = geom.getCenter();
+          const radius = geom.getRadius();
+          tooltip.innerHTML = `${radius.toFixed(2)} m`;
+          helpTooltipRef.current.setPosition(center);
+        }
+
+        if (geom.getType() === "LineString") {
+          const coords = geom.getCoordinates();
+          if (coords.length > 1) {
+            const lastSegLength = getLength(
+              new LineString([
+                coords[coords.length - 2],
+                coords[coords.length - 1],
+              ])
+            );
+            tooltip.innerHTML = `${lastSegLength.toFixed(2)} m`;
+            helpTooltipRef.current.setPosition(coords[coords.length - 1]);
+          }
+        }
+      });
+    });
 
     draw.on("drawend", (e) => {
       const feature = e.feature;
+
       if (!feature.getId()) {
         const id = Date.now().toString();
         feature.setId(id);
         feature.set("id", id);
       }
+
+      const tempCenter = feature.get("tempCenter");
+
+      if (tempCenter) {
+        centerPointLayerRef.current?.getSource().removeFeature(tempCenter);
+        feature.unset("tempCenter");
+      }
+
+      if (helpTooltipRef.current) {
+        map.removeOverlay(helpTooltipRef.current);
+        helpTooltipRef.current = null;
+      }
+      helpTooltipElementRef.current = null;
+
       updateExportFeature(feature);
+      updateStaticTooltip(feature);
+      updateCenterPoint(feature);
       setActiveDrawType(null);
     });
 
@@ -188,40 +412,55 @@ const DrawTools = ({ map, ref, activeDrawType, setActiveDrawType }) => {
     [activeDrawType, map, ref, setActiveDrawType]
   );
 
-  // Clear all drawings
   const clearDrawings = useCallback(() => {
+    if (!map) return;
+
+    Object.values(tooltipOverlaysRef.current).forEach((overlay) => {
+      if (overlay) map.removeOverlay(overlay);
+    });
+    tooltipOverlaysRef.current = {};
+
+    clearSegmentOverlays();
+
     ref.current?.clear();
     geojsonDraw.current = [];
     exportGeoJSON([]);
-  }, [ref, exportGeoJSON]);
+
+    centerPointLayerRef.current?.getSource().clear();
+  }, [map, ref, exportGeoJSON]);
+
+  const defaultTools = [
+    {
+      title: "Hình tròn",
+      icon: <FaRegCircle size={20} />,
+      onClick: () => startDrawing("Circle"),
+    },
+    {
+      title: "Đa giác",
+      icon: <TbPolygon size={20} />,
+      onClick: () => startDrawing("Polygon"),
+    },
+    {
+      title: "Line",
+      icon: <BsSlashLg size={20} />,
+      onClick: () => startDrawing("LineString"),
+    },
+    {
+      title: "Xóa tất cả",
+      icon: <GrClear size={20} />,
+      onClick: clearDrawings,
+    },
+  ];
+
+  // ✅ Gộp thêm từ props.optionalTools nếu có
+  const allTools = [...defaultTools, ...(optionalTools || [])];
 
   return (
     <GroupButton
       direction="column"
       title="Tools"
       animate={true}
-      children={[
-        {
-          title: "Hình tròn",
-          icon: <FaRegCircle size={20} />,
-          onClick: () => startDrawing("Circle"),
-        },
-        {
-          title: "Đa giác",
-          icon: <TbPolygon size={20} />,
-          onClick: () => startDrawing("Polygon"),
-        },
-        {
-          title: "Line",
-          icon: <BsSlashLg size={20} />,
-          onClick: () => startDrawing("LineString"),
-        },
-        {
-          title: "Xóa tất cả",
-          icon: <GrClear size={20} />,
-          onClick: clearDrawings,
-        },
-      ]}
+      children={allTools}
       position={{ bottom: 12, right: 4 }}
     />
   );

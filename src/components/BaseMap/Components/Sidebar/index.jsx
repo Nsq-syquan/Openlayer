@@ -1,8 +1,12 @@
 import React, { useState } from "react";
 import { BsLayoutSidebar } from "react-icons/bs";
+import { useMap } from "../../../hooks/useMap";
 
 const Sidebar = ({ content }) => {
   const [open, setOpen] = useState(false);
+  // const map = useMap();
+
+  // console.log("useMap", map)
 
   return (
     <>

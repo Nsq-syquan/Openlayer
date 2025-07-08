@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { BsReverseLayoutSidebarReverse } from "react-icons/bs";
 import { IoIosClose } from "react-icons/io";
+import { useMap } from "../../../hooks/useMap";
 
-export const Reportbar = ({ mapContainerRef, title, content }) => {
+export const Reportbar = ({ map = useMap(), title, content }) => {
   const [open, setOpen] = useState(false);
 
   return (

@@ -14,6 +14,7 @@
     "@tanstack/react-query": "^5.81.5",
     "antd": "^5.26.3",
     "ol": "^10.6.1",
+    "ol-mapbox-style": "^13.0.1",
     "openlayers": "^4.6.5",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -21,6 +22,7 @@
     "sass": "^1.89.2",
     "tailwindcss": "^4.1.11",
     "uuid": "^11.1.0",
+    "uuidv4": "^6.2.13",
     "zustand": "^5.0.6"
   },
   "devDependencies": {

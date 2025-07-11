@@ -1,21 +1,21 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
-import data from "../../data/province.json";
-import Sidebar from "../../components/BaseMap/Components/Sidebar";
-import Popup from "../../components/BaseMap/Components/Popup";
-import MapLayer from "../../components/BaseMap/Components/Source";
-import DrawTools from "../../components/BaseMap/Components/DrawTools";
-import { LuLayers2 } from "react-icons/lu";
-import { Reportbar } from "../../components/BaseMap/Components/Reportbar";
-import BaseMap from "../../components/BaseMap";
+import { Typography } from "antd";
 import { Fill, Stroke, Style } from "ol/style";
+import { useCallback, useMemo, useRef, useState } from "react";
+import BaseMap from "../../components/BaseMap";
+import DrawTools from "../../components/BaseMap/Components/DrawTools";
+import Popup from "../../components/BaseMap/Components/Popup";
+import { Rightbar } from "../../components/BaseMap/Components/Rightbar";
+import { Sidebar } from "../../components/BaseMap/Components/Sidebar";
+import MapLayer from "../../components/BaseMap/Components/Source";
+import { handleMapClickSelectFeature } from "../../components/BaseMap/handlers/handleMapClickSelectFeature";
+import data from "../../data/province.json";
 
 const Home = () => {
   const mapRef = useRef();
   const [popupData, setPopupData] = useState(null);
   const [drawType, setDrawType] = useState(null);
   const drawRef = useRef(null);
-  const popupRef = useRef(null);
-
+  const selectedDrawIdRef = useRef(null);
 
   const wmsParams = useMemo(
     () => ({
@@ -28,16 +28,51 @@ const Home = () => {
   );
 
   const onClickMap = useCallback((evt) => {
-    const { coordinate, feature, layer } = evt;
-    console.log("Map click:", evt);
+    const { coordinate, pixel } = evt;
+
+    const vectorSource = drawRef.current;
+
+    const featureAtDrawLayer = mapRef?.current.forEachFeatureAtPixel(
+      pixel,
+      (feat, layer) => {
+        if (layer?.get("name") === "drawLayer") return feat;
+        return null;
+      }
+    );
+
+    // Select feature trong DrawTools
+    handleMapClickSelectFeature(mapRef.current, evt, {
+      vectorSource,
+      selectedDrawIdRef,
+      onFeatureSelect: (id) => {
+        console.log("select draw ", id);
+        // setPopupData({ featureId: id });
+      },
+    });
+
+    // Select feature ở layer khác (ví dụ: my-vector-layer)
+    const feature = mapRef?.current.forEachFeatureAtPixel(
+      pixel,
+      (feat, layer) => {
+        if (layer?.get("id") === "my-vector-layer") {
+          return {
+            ...feat,
+            properties: feat.getProperties(),
+            "layer-id": layer.get("id"),
+          };
+        }
+        return null;
+      }
+    );
 
     if (feature) {
-    const coordinates = evt.coordinate;
-    const data = feature.properties;
-    popupRef.current?.show(coordinates, data);
-  } else {
-    popupRef.current?.hide();
-  }
+      setPopupData({
+        lngLat: coordinate,
+        feature,
+      });
+    } else {
+      setPopupData(undefined);
+    }
   }, []);
 
   const handleFeatureCreate = useCallback((feature) => {
@@ -56,17 +91,9 @@ const Home = () => {
     <div className="w-screen h-screen relative">
       <BaseMap
         ref={mapRef}
-        style={"https://cdnv2.tgdd.vn/maps/styles/mwg.json"}
+        // style={"https://cdnbeta.tgdd.vn/maps/styles/mwg.json"}
         zoom={10}
         onClick={onClickMap}
-        report={{
-          active: true,
-          content: "Hello",
-        }}
-        sidebar={{
-          active: true,
-          content: "Sidebar custom",
-        }}
         isDraw
       >
         <DrawTools
@@ -78,9 +105,33 @@ const Home = () => {
           onFeatureDelete={handleFeatureDelete}
         />
 
-        <Sidebar content={"Hello"} />
-        <Popup ref={popupRef} />
-        <Reportbar />
+        {/* Sidebar hiển thị nội dung */}
+        <Sidebar>
+          <Typography.Title level={5}>Thông tin chi tiết</Typography.Title>
+          {popupData?.feature?.properties?.tentinh ? (
+            <Typography.Text>
+              Tên tỉnh: {popupData.feature.properties.tentinh}
+            </Typography.Text>
+          ) : (
+            <Typography.Text>Không có dữ liệu</Typography.Text>
+          )}
+        </Sidebar>
+        <Rightbar>
+          <Typography.Title level={5}>Thông tin chi tiết</Typography.Title>
+          {popupData?.feature?.properties?.tentinh ? (
+            <Typography.Text>
+              Tên tỉnh: {popupData.feature.properties.tentinh}
+            </Typography.Text>
+          ) : (
+            <Typography.Text>Không có dữ liệu</Typography.Text>
+          )}
+        </Rightbar>
+
+        <Popup coordinate={popupData?.lngLat}>
+          <Typography.Text>
+            {popupData?.feature?.properties?.tentinh}
+          </Typography.Text>
+        </Popup>
 
         <MapLayer
           sourceType="vector"

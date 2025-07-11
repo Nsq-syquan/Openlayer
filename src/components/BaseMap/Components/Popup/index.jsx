@@ -1,70 +1,41 @@
-import React, {
-  useEffect,
-  useRef,
-  useState,
-  useImperativeHandle,
-  forwardRef,
-} from "react";
-import Overlay from "ol/Overlay";
-import { useMap } from "../../../hooks/useMap";
+// components/PopupOverlay.jsx
+import { useContext, useEffect, useRef, useState } from "react";
+import { MapContext } from "../../../hooks/useMap";
+import ReactDOM from "react-dom";
 
-const Popup = forwardRef((props, ref) => {
-  const map = useMap();
-  const containerRef = useRef(null);
+const Popup = ({ coordinate, children }) => {
+  const map = useContext(MapContext);
   const overlayRef = useRef(null);
+  const [containerEl, setContainerEl] = useState(null);
 
-  const [data, setData] = useState(null);
-  const [position, setPosition] = useState(null);
-
-  // Tạo overlay khi map sẵn sàng
   useEffect(() => {
-    if (!map || !containerRef.current) return;
+    if (!map) return;
 
-    const overlay = new Overlay({
-      element: containerRef.current,
-      positioning: "bottom-center",
-      stopEvent: false,
-      offset: [0, -10],
-      
-    });
+    const el = document.getElementById("popup-container");
+    if (!el) return;
+
+    const overlay = map.getOverlays().item(0); // dùng overlay đã tạo sẵn
+    if (!overlay) return;
 
     overlayRef.current = overlay;
-    map.addOverlay(overlay);
-
-    return () => {
-      map.removeOverlay(overlay);
-    };
+    setContainerEl(el);
   }, [map]);
 
-  // Show/hide từ ref
-  useImperativeHandle(ref, () => ({
-    show: (coordinate, data) => {
-      setPosition(coordinate);
-      setData(data);
-      overlayRef.current?.setPosition(coordinate);
-    },
-    hide: () => {
-      setData(null);
-      setPosition(null);
-      overlayRef.current?.setPosition(undefined);
-    },
-  }));
+  useEffect(() => {
+    const overlay = overlayRef.current;
+    if (!overlay) return;
 
-  if (!data) return null;
+    if (!coordinate) {
+      overlay.setPosition(undefined); // ẩn popup nếu không có tọa độ
+      return;
+    }
 
-  return (
-    <div
-      ref={containerRef}
-      className="absolute z-50 bg-white rounded shadow p-2"
-      style={{ pointerEvents: "none" }}
-    >
-      {/* Render nội dung bằng React */}
-      <div>
-        <div className="font-bold">{data?.properties?.tentinh}</div>
-        <div className="text-sm text-gray-600">ID: {data?.id}</div>
-      </div>
-    </div>
-  );
-});
+    overlay.setPosition(coordinate); // hiển thị popup
+  }, [coordinate]);
+
+  if (!containerEl || !coordinate) return null;
+
+  return ReactDOM.createPortal(children, containerEl);
+};
 
 export default Popup;

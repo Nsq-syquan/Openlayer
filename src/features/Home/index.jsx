@@ -2,13 +2,9 @@ import { Typography } from "antd";
 import { Fill, Stroke, Style } from "ol/style";
 import { useCallback, useMemo, useRef, useState } from "react";
 import BaseMap from "../../components/BaseMap";
-import DrawTools from "../../components/BaseMap/Components/DrawTools";
-import Popup from "../../components/BaseMap/Components/Popup";
-import { Rightbar } from "../../components/BaseMap/Components/Rightbar";
-import { Sidebar } from "../../components/BaseMap/Components/Sidebar";
-import MapLayer from "../../components/BaseMap/Components/Source";
-import { handleMapClickSelectFeature } from "../../components/BaseMap/handlers/handleMapClickSelectFeature";
 import data from "../../data/province.json";
+import { DrawTools, MapLayer, Popup, Rightbar, Sidebar } from "../../components/BaseMap/Components";
+import { onSelectDraw } from "../../components/BaseMap/handlers";
 
 const Home = () => {
   const mapRef = useRef();
@@ -41,7 +37,7 @@ const Home = () => {
     );
 
     // Select feature trong DrawTools
-    handleMapClickSelectFeature(mapRef.current, evt, {
+    onSelectDraw(mapRef.current, evt, {
       vectorSource,
       selectedDrawIdRef,
       onFeatureSelect: (id) => {
@@ -91,7 +87,7 @@ const Home = () => {
     <div className="w-screen h-screen relative">
       <BaseMap
         ref={mapRef}
-        // style={"https://cdnbeta.tgdd.vn/maps/styles/mwg.json"}
+        // style={".../style.json"}
         zoom={10}
         onClick={onClickMap}
         isDraw
@@ -148,6 +144,7 @@ const Home = () => {
         />
         <MapLayer
           sourceType="wms"
+          renderType="image"
           wmsUrl="https://ahocevar.com/geoserver/ows"
           wmsParams={wmsParams}
           idLayer="wms-layer"

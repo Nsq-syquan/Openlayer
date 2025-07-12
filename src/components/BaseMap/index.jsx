@@ -14,7 +14,7 @@ import "ol/ol.css";
 import { fromLonLat } from "ol/proj";
 import XYZ from "ol/source/XYZ";
 import React, { forwardRef, useEffect, useRef, useState } from "react";
-import { MapContext } from "../hooks/useMap";
+import { MapContext } from "./hooks/useMap";
 import "./index.css";
 
 

@@ -22,7 +22,7 @@ import GroupButton from "./GroupButton";
 import Overlay from "ol/Overlay";
 import { getArea, getLength } from "ol/sphere";
 import "./index.css";
-import { useMap } from "../../../hooks/useMap";
+import { useMap } from "../../hooks/useMap";
 
 const DRAW_LAYER_NAME = "drawLayer";
 const DRAW_LAYER_ZINDEX = 1000;
@@ -43,7 +43,7 @@ const SELECTED_STYLE = new Style({
   }),
 });
 
-const DrawTools = forwardRef(
+export const DrawTools = forwardRef(
   (
     {
       map = useMap(),
@@ -670,5 +670,3 @@ const DrawTools = forwardRef(
     );
   }
 );
-
-export default DrawTools;

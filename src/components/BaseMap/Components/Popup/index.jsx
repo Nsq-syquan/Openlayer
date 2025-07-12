@@ -1,9 +1,9 @@
-// components/PopupOverlay.jsx
+
 import { useContext, useEffect, useRef, useState } from "react";
-import { MapContext } from "../../../hooks/useMap";
+import { MapContext } from "../../hooks/useMap";
 import ReactDOM from "react-dom";
 
-const Popup = ({ coordinate, children }) => {
+export const Popup = ({ coordinate, children }) => {
   const map = useContext(MapContext);
   const overlayRef = useRef(null);
   const [containerEl, setContainerEl] = useState(null);
@@ -38,4 +38,3 @@ const Popup = ({ coordinate, children }) => {
   return ReactDOM.createPortal(children, containerEl);
 };
 
-export default Popup;

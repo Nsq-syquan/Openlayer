@@ -1,7 +1,7 @@
 import { DRAW_STYLE, SELECTED_STYLE } from "../Components/DrawTools/style";
 
 
-export const handleMapClickSelectFeature = (
+export const onSelectDraw = (
   map,
   event,
   {

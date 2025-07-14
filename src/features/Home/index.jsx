@@ -3,8 +3,18 @@ import { Fill, Stroke, Style } from "ol/style";
 import { useCallback, useMemo, useRef, useState } from "react";
 import BaseMap from "../../components/BaseMap";
 import data from "../../data/province.json";
-import { DrawTools, MapLayer, Popup, Rightbar, Sidebar } from "../../components/BaseMap/Components";
+import {
+  DrawTools,
+  MapLayer,
+  Popup,
+  Rightbar,
+  Sidebar,
+} from "../../components/BaseMap/Components";
 import { onSelectDraw } from "../../components/BaseMap/handlers";
+import {
+  LayerWrapper,
+  SourceWrapper,
+} from "../../components/BaseMap/Components/Composition";
 
 const Home = () => {
   const mapRef = useRef();
@@ -128,8 +138,28 @@ const Home = () => {
             {popupData?.feature?.properties?.tentinh}
           </Typography.Text>
         </Popup>
+        <SourceWrapper type="vector" id="my-vector-source" data={data}>
+          <LayerWrapper
+            type="vector"
+            idLayer="my-vector-layer"
+            style={
+              new Style({
+                fill: new Fill({ color: "rgba(0, 123, 255, 0.3)" }),
+                stroke: new Stroke({ color: "#007bff", width: 2 }),
+                zIndex: 3,
+              })
+            }
+          />
+        </SourceWrapper>
+        <SourceWrapper
+          type="tile-wms"
+          wmsUrl="https://ahocevar.com/geoserver/ows"
+          wmsParams={wmsParams}
+        >
+          <LayerWrapper type="tile-wms" idLayer="tileLayer1" />
+        </SourceWrapper>
 
-        <MapLayer
+        {/* <MapLayer
           sourceType="vector"
           data={data}
           idSource="my-vector-source"
@@ -148,7 +178,7 @@ const Home = () => {
           wmsUrl="https://ahocevar.com/geoserver/ows"
           wmsParams={wmsParams}
           idLayer="wms-layer"
-        />
+        /> */}
       </BaseMap>
     </div>
   );

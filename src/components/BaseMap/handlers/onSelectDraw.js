@@ -22,6 +22,7 @@ export const onSelectDraw = (
     }
     return null;
   });
+  console.log(clickedFeature)
 
   // Bỏ chọn feature cũ nếu có
   if (selectedDrawIdRef.current) {

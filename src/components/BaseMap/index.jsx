@@ -164,17 +164,8 @@ const BaseMap = forwardRef(
             />
           )}
           {/* Render children */}
-          {isMapReady &&
-            children &&
-            (Array.isArray(children)
-              ? children.map((child, index) =>
-                  React.isValidElement(child)
-                    ? React.cloneElement(child, { key: index })
-                    : null
-                )
-              : React.isValidElement(children)
-              ? React.cloneElement(children, {})
-              : null)}
+          {isMapReady && children}
+
         </div>
       </MapContext.Provider>
     );

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import VectorSource from "ol/source/Vector";
 import GeoJSON from "ol/format/GeoJSON";
 import TileWMS from "ol/source/TileWMS";
@@ -10,70 +10,82 @@ const normalizeWmsParams = (params) =>
     return acc;
   }, {});
 
-
 export const SourceWrapper = ({
   type = "vector", // "vector" | "tile-wms" | "image-wms"
-  customSource,    // ưu tiên nếu có
+  customSource,
   data,
   id,
   wmsUrl,
   wmsParams = {},
   children,
 }) => {
-  // Nếu đã có source sẵn từ ngoài truyền vào thì dùng luôn
-  if (customSource) {
-    return React.Children.map(children, (child) =>
-      child ? React.cloneElement(child, { source: customSource }) : null
-    );
-  }
+  // ✅ Nếu có customSource → ưu tiên dùng
+  const source = useMemo(() => {
+    if (customSource) return customSource;
 
-  let source = null;
-  const normalizedParams = normalizeWmsParams(wmsParams);
+    const normalizedParams = normalizeWmsParams(wmsParams);
 
-  if (type === "vector") {
-    try {
-      const geojson = typeof data === "string" ? JSON.parse(data) : data;
+    if (type === "vector") {
+      try {
+        const geojson = typeof data === "string" ? JSON.parse(data) : data;
 
-      const features = new GeoJSON().readFeatures(geojson, {
-        dataProjection: "EPSG:4326",
-        featureProjection: "EPSG:3857",
-      });
+        const features = new GeoJSON().readFeatures(geojson, {
+          dataProjection: "EPSG:4326",
+          featureProjection: "EPSG:3857",
+        });
 
-      source = new VectorSource({ features });
-      if (id) source.set("id", id);
-    } catch (err) {
-      console.warn("⚠️ Lỗi đọc dữ liệu GeoJSON:", err);
-      return null;
+        const src = new VectorSource({ features });
+        if (id) src.set("id", id);
+        return src;
+      } catch (err) {
+        console.warn("⚠️ Lỗi đọc dữ liệu GeoJSON:", err);
+        return null;
+      }
     }
-  } else if (type === "tile-wms" && wmsUrl && normalizedParams.LAYERS) {
-    source = new TileWMS({
-      url: wmsUrl,
-      params: {
-        TILED: true,
-        ...normalizedParams,
-      },
-      serverType: normalizedParams.serverType || "geoserver",
-      crossOrigin: "anonymous",
-    });
-    if (id) source.set("id", id);
-  } else if (type === "image-wms" && wmsUrl && normalizedParams.LAYERS) {
-    source = new ImageWMS({
-      url: wmsUrl,
-      params: {
-        FORMAT: "image/png",
-        TRANSPARENT: true,
-        ...normalizedParams,
-      },
-      serverType: normalizedParams.serverType || "geoserver",
-      crossOrigin: "anonymous",
-    });
-    if (id) source.set("id", id);
-  } else {
-    console.warn("⚠️ SourceWrapper config không hợp lệ:", { type, wmsUrl, wmsParams });
-    return null;
-  }
 
+    if (type === "tile-wms" && wmsUrl && normalizedParams.LAYERS) {
+      const src = new TileWMS({
+        url: wmsUrl,
+        params: {
+          TILED: true,
+          ...normalizedParams,
+        },
+        serverType: normalizedParams.SERVER_TYPE || "geoserver",
+        crossOrigin: "anonymous",
+      });
+      if (id) src.set("id", id);
+      return src;
+    }
+
+    if (type === "image-wms" && wmsUrl && normalizedParams.LAYERS) {
+      const src = new ImageWMS({
+        url: wmsUrl,
+        params: {
+          FORMAT: "image/png",
+          TRANSPARENT: true,
+          ...normalizedParams,
+        },
+        serverType: normalizedParams.SERVER_TYPE || "geoserver",
+        crossOrigin: "anonymous",
+      });
+      if (id) src.set("id", id);
+      return src;
+    }
+
+    console.warn("⚠️ SourceWrapper config không hợp lệ:", {
+      type,
+      wmsUrl,
+      wmsParams,
+    });
+
+    return null;
+  }, [type, data, id, wmsUrl, wmsParams, customSource]);
+
+  // ✅ Nếu source null thì không render gì cả
+  if (!source) return null;
+
+  // ✅ Truyền source vào children
   return React.Children.map(children, (child) =>
-    child ? React.cloneElement(child, { source }) : null
+    React.isValidElement(child) ? React.cloneElement(child, { source }) : null
   );
 };

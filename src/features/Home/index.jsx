@@ -16,7 +16,8 @@ import {
   SourceWrapper,
 } from "../../components/BaseMap/Components/Composition";
 import { onSelectDraw } from "../../components/BaseMap/handlers";
-import data from "../../data/province.json";
+import useWMSClickHandler from "../../components/BaseMap/hooks/useWMSClickHandler";
+import dataGeojson from "../../data/province.json";
 
 // Đăng ký VN-2000 (EPSG:9218) - ví dụ: Khu vực Hồ Chí Minh (Zone 48N)
 proj4.defs(
@@ -41,8 +42,25 @@ const Home = () => {
     []
   );
 
+  useWMSClickHandler(mapRef, "wms-source-1", ({ coordinate, data }) => {
+    if (data.features?.length > 0) {
+      console.log(data?.feature);
+      setPopupData({
+        lngLat: coordinate,
+        feature: {
+          properties: {
+            name: data?.features[0]?.properties?.["STATE_NAME"],
+          },
+        },
+      });
+    } else {
+      setPopupData(undefined);
+    }
+  });
+
   const onClickMap = useCallback((evt) => {
     const { coordinate, pixel } = evt;
+
     const vectorSource = drawRef.current;
 
     const featureAtDrawLayer = mapRef?.current.forEachFeatureAtPixel(
@@ -80,7 +98,13 @@ const Home = () => {
     if (feature) {
       setPopupData({
         lngLat: coordinate,
-        feature,
+        feature: {
+          ...feature,
+          properties: {
+            ...feature?.properties,
+            name: feature?.properties?.tentinh,
+          },
+        },
       });
     } else {
       setPopupData(undefined);
@@ -140,15 +164,9 @@ const Home = () => {
     []
   );
 
-  return (
-    <div className="w-screen h-screen relative">
-      <BaseMap
-        ref={mapRef}
-        // style={".../style.json"}
-        zoom={10}
-        onClick={onClickMap}
-        onContextMenu={onContextMenu}
-      >
+  const mapChildren = useMemo(
+    () => (
+      <>
         <DrawTools
           ref={drawRef}
           activeDrawType={drawType}
@@ -182,10 +200,10 @@ const Home = () => {
 
         <Popup coordinate={popupData?.lngLat}>
           <Typography.Text>
-            {popupData?.feature?.properties?.tentinh}
+            {popupData?.feature?.properties?.name}
           </Typography.Text>
         </Popup>
-        <SourceWrapper type="vector" id="my-vector-source" data={data}>
+        <SourceWrapper type="vector" id="my-vector-source" data={dataGeojson}>
           <LayerWrapper
             type="vector"
             id="my-vector-layer"
@@ -202,10 +220,25 @@ const Home = () => {
           type="tile-wms"
           wmsUrl="https://ahocevar.com/geoserver/wms"
           wmsParams={wmsParams}
-          id='tile-source'
+          id="wms-source-1"
         >
-          <LayerWrapper type="tile-wms" id="tile-layer" />
+          <LayerWrapper type="tile-wms" id="wms-layer-1" />
         </SourceWrapper>
+      </>
+    ),
+    [popupData, wmsParams, drawRef, drawType, dataGeojson, mapRef]
+  );
+
+  return (
+    <div className="w-screen h-screen relative">
+      <BaseMap
+        ref={mapRef}
+        // style={".../style.json"}
+        zoom={10}
+        onClick={onClickMap}
+        onContextMenu={onContextMenu}
+      >
+        {mapChildren}
       </BaseMap>
     </div>
   );

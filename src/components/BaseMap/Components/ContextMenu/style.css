@@ -1,0 +1,25 @@
+.context-menu {
+  position: fixed;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  min-width: 180px;
+  font-family: sans-serif;
+}
+
+.context-item {
+  padding: 6px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+  transition: background 0.2s ease;
+}
+
+.context-item:hover {
+  background: #f5f7fa;
+  border-radius: 4px;
+}

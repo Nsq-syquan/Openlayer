@@ -4,59 +4,76 @@ import GeoJSON from "ol/format/GeoJSON";
 import TileWMS from "ol/source/TileWMS";
 import ImageWMS from "ol/source/ImageWMS";
 
+const normalizeWmsParams = (params) =>
+  Object.keys(params).reduce((acc, key) => {
+    acc[key.toUpperCase()] = params[key];
+    return acc;
+  }, {});
+
+
 export const SourceWrapper = ({
   type = "vector", // "vector" | "tile-wms" | "image-wms"
+  customSource,    // ưu tiên nếu có
   data,
   id,
   wmsUrl,
   wmsParams = {},
   children,
 }) => {
+  // Nếu đã có source sẵn từ ngoài truyền vào thì dùng luôn
+  if (customSource) {
+    return React.Children.map(children, (child) =>
+      child ? React.cloneElement(child, { source: customSource }) : null
+    );
+  }
+
   let source = null;
+  const normalizedParams = normalizeWmsParams(wmsParams);
 
   if (type === "vector") {
-    const geojson = typeof data === "string" ? JSON.parse(data) : data;
+    try {
+      const geojson = typeof data === "string" ? JSON.parse(data) : data;
 
-    const features = new GeoJSON().readFeatures(geojson, {
-      dataProjection: "EPSG:4326",
-      featureProjection: "EPSG:3857",
-    });
+      const features = new GeoJSON().readFeatures(geojson, {
+        dataProjection: "EPSG:4326",
+        featureProjection: "EPSG:3857",
+      });
 
-    source = new VectorSource({ features });
-    if (id) source.set("id", id);
-  } else if (type === "tile-wms" && wmsUrl && wmsParams.layers) {
+      source = new VectorSource({ features });
+      if (id) source.set("id", id);
+    } catch (err) {
+      console.warn("⚠️ Lỗi đọc dữ liệu GeoJSON:", err);
+      return null;
+    }
+  } else if (type === "tile-wms" && wmsUrl && normalizedParams.LAYERS) {
     source = new TileWMS({
       url: wmsUrl,
       params: {
-        LAYERS: wmsParams.layers,
-        STYLES: wmsParams.styles || "",
         TILED: true,
-        ...wmsParams,
+        ...normalizedParams,
       },
-      serverType: wmsParams.serverType || "geoserver",
+      serverType: normalizedParams.serverType || "geoserver",
       crossOrigin: "anonymous",
     });
-  } else if (type === "image-wms" && wmsUrl && wmsParams.layers) {
+    if (id) source.set("id", id);
+  } else if (type === "image-wms" && wmsUrl && normalizedParams.LAYERS) {
     source = new ImageWMS({
       url: wmsUrl,
       params: {
-        LAYERS: wmsParams.layers,
-        STYLES: wmsParams.styles || "",
         FORMAT: "image/png",
         TRANSPARENT: true,
-        ...wmsParams,
+        ...normalizedParams,
       },
-      serverType: wmsParams.serverType || "geoserver",
+      serverType: normalizedParams.serverType || "geoserver",
       crossOrigin: "anonymous",
     });
+    if (id) source.set("id", id);
   } else {
-    console.warn("⚠️ Invalid source config");
+    console.warn("⚠️ SourceWrapper config không hợp lệ:", { type, wmsUrl, wmsParams });
     return null;
   }
 
-  // Clone children and inject `source`
   return React.Children.map(children, (child) =>
-    React.cloneElement(child, { source })
+    child ? React.cloneElement(child, { source }) : null
   );
 };
-

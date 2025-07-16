@@ -4,7 +4,7 @@ import TileLayer from "ol/layer/Tile";
 import ImageLayer from "ol/layer/Image";
 import { useMap } from "../../hooks/useMap";
 
-export const LayerWrapper = ({ source, type = "vector", style, idLayer }) => {
+export const LayerWrapper = ({ source, type = "vector", style, id }) => {
   const map = useMap();
   const layerRef = useRef();
 
@@ -20,7 +20,7 @@ export const LayerWrapper = ({ source, type = "vector", style, idLayer }) => {
       layer = new ImageLayer({ source });
     }
 
-    if (idLayer) layer.set("id", idLayer);
+    if (id) layer.set("id", id);
     map.addLayer(layer);
     layerRef.current = layer;
 
@@ -29,7 +29,7 @@ export const LayerWrapper = ({ source, type = "vector", style, idLayer }) => {
         map.removeLayer(layerRef.current);
       }
     };
-  }, [map, source, type, style, idLayer]);
+  }, [map, source, type, style, id]);
 
   return null;
 };

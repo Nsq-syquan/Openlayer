@@ -2816,6 +2816,11 @@ math-intrinsics@^1.1.0:
   resolved "https://registry.yarnpkg.com/math-intrinsics/-/math-intrinsics-1.1.0.tgz#a0dd74be81e2aa5c2f27e65ce283605ee4e2b7f9"
   integrity sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==
 
+mgrs@1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/mgrs/-/mgrs-1.0.0.tgz#fb91588e78c90025672395cb40b25f7cd6ad1829"
+  integrity sha512-awNbTOqCxK1DBGjalK3xqWIstBZgN6fxsMSiXLs9/spqWkF2pAhb2rrYCFSsr1/tT7PhcDGjZndG8SWYn0byYA==
+
 micromatch@^4.0.5:
   version "4.0.8"
   resolved "https://registry.yarnpkg.com/micromatch/-/micromatch-4.0.8.tgz#d66fa18f3a47076789320b9b1af32bd86d9fa202"
@@ -3226,6 +3231,14 @@ process-nextick-args@~2.0.0:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/process-nextick-args/-/process-nextick-args-2.0.1.tgz#7820d9b16120cc55ca9ae7792680ae7dba6d7fe2"
   integrity sha512-3ouUOpQhtgrbOa17J7+uxOTpITYWaGP7/AhoR3+A+/1e9skrzelGi/dXzEYyvbxubEF6Wn2ypscTKiKJFFn1ag==
+
+proj4@^2.19.7:
+  version "2.19.7"
+  resolved "https://registry.yarnpkg.com/proj4/-/proj4-2.19.7.tgz#d7b6418d41d78a2180410688afbd34bb2bd7ef92"
+  integrity sha512-1YdHp6/MyGh6s0T1zCwGnOUiah/ov/8HJYkHMXHD8YuUTpkbo82OuCSivSs4ydCIODZVico5QVTTXi5yoDkMZA==
+  dependencies:
+    mgrs "1.0.0"
+    wkt-parser "^1.5.1"
 
 protocol-buffers-schema@^3.3.1:
   version "3.6.0"
@@ -4426,6 +4439,11 @@ window-size@0.1.0:
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/window-size/-/window-size-0.1.0.tgz#5438cd2ea93b202efa3a19fe8887aee7c94f9c9d"
   integrity sha512-1pTPQDKTdd61ozlKGNCjhNRd+KPmgLSGa3mZTHoOliaGcESD8G1PXhh7c1fgiPjVbNVfgy2Faw4BI8/m0cC8Mg==
+
+wkt-parser@^1.5.1:
+  version "1.5.2"
+  resolved "https://registry.yarnpkg.com/wkt-parser/-/wkt-parser-1.5.2.tgz#a8eaf86ac2cc1d0a2e6a8082a930f5c7ebdb5771"
+  integrity sha512-1ZUiV1FTwSiSrgWzV9KXJuOF2BVW91KY/mau04BhnmgOdroRQea7Q0s5TVqwGLm0D2tZwObd/tBYXW49sSxp3Q==
 
 word-wrap@^1.2.5:
   version "1.2.5"

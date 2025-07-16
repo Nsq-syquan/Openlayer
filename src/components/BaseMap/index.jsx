@@ -16,23 +16,22 @@ import XYZ from "ol/source/XYZ";
 import React, { forwardRef, useEffect, useRef, useState } from "react";
 import { MapContext } from "./hooks/useMap";
 import "./index.css";
-
+import ContextMenu from "./Components/ContextMenu";
 
 const BaseMap = forwardRef(
   (
-    {
-      style,
-      onClick,
-      isDraw = false,
-      children,
-      ...rest
-    },
-    ref 
+    { style, onClick, renderContextMenu, isDraw = false, children, ...rest },
+    ref
   ) => {
     const mapRef = useRef(null);
     const [mapInstance, setMapInstance] = useState(null);
     const [isMapReady, setIsMapReady] = useState(false);
     const overlayRef = useRef(null);
+
+    const [contextMenuState, setContextMenuState] = useState({
+      position: null,
+      items: [],
+    });
 
     useEffect(() => {
       if (!mapRef.current || !overlayRef?.current) return;
@@ -78,8 +77,24 @@ const BaseMap = forwardRef(
         }
 
         olMap.on("click", (event) => {
-          
-          onClick(event);
+          setContextMenuState(null);
+          if (onClick) onClick(event);
+        });
+
+        // Bắt sự kiện chuột phải
+        olMap.getViewport().addEventListener("contextmenu", (event) => {
+          event.preventDefault();
+          const pixel = olMap.getEventPixel(event);
+          const coordinate = olMap.getCoordinateFromPixel(pixel);
+
+          // gọi hàm dựng menu từ props
+          if (typeof rest.onContextMenu === "function") {
+            const items = rest.onContextMenu(coordinate, olMap);
+            setContextMenuState({
+              position: { x: event.clientX, y: event.clientY },
+              items,
+            });
+          }
         });
 
         setMapInstance(olMap);
@@ -117,13 +132,6 @@ const BaseMap = forwardRef(
       };
     }, []);
 
-    // Reset drawType khi isDraw thay đổi
-    useEffect(() => {
-      if (!isDraw) {
-        setDrawType(null);
-      }
-    }, [isDraw]);
-
     return (
       <MapContext.Provider value={mapInstance}>
         <div
@@ -135,7 +143,7 @@ const BaseMap = forwardRef(
           }}
         >
           <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
-          
+
           <div ref={overlayRef}>
             <div
               id="popup-container"
@@ -148,6 +156,13 @@ const BaseMap = forwardRef(
             />
           </div>
 
+          {contextMenuState && (
+            <ContextMenu
+              position={contextMenuState?.position}
+              items={contextMenuState?.items}
+              onClose={() => setContextMenuState({ position: null, items: [] })}
+            />
+          )}
           {/* Render children */}
           {isMapReady &&
             children &&

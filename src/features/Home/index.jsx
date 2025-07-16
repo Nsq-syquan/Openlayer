@@ -1,20 +1,29 @@
 import { Typography } from "antd";
+import { transform } from "ol/proj";
+import { register } from "ol/proj/proj4";
 import { Fill, Stroke, Style } from "ol/style";
+import proj4 from "proj4";
 import { useCallback, useMemo, useRef, useState } from "react";
 import BaseMap from "../../components/BaseMap";
-import data from "../../data/province.json";
 import {
   DrawTools,
-  MapLayer,
   Popup,
   Rightbar,
   Sidebar,
 } from "../../components/BaseMap/Components";
-import { onSelectDraw } from "../../components/BaseMap/handlers";
 import {
   LayerWrapper,
   SourceWrapper,
 } from "../../components/BaseMap/Components/Composition";
+import { onSelectDraw } from "../../components/BaseMap/handlers";
+import data from "../../data/province.json";
+
+// Đăng ký VN-2000 (EPSG:9218) - ví dụ: Khu vực Hồ Chí Minh (Zone 48N)
+proj4.defs(
+  "EPSG:9218",
+  "+proj=utm +zone=48 +datum=WGS84 +units=m +no_defs +towgs84=0,0,0"
+);
+register(proj4);
 
 const Home = () => {
   const mapRef = useRef();
@@ -25,17 +34,15 @@ const Home = () => {
 
   const wmsParams = useMemo(
     () => ({
-      service: "wms",
-      layers: "topp:states",
-      format: "image/png",
-      transparent: true,
+      LAYERS: "topp:states", // ✅ viết hoa
+      FORMAT: "image/png",
+      TRANSPARENT: true,
     }),
     []
   );
 
   const onClickMap = useCallback((evt) => {
     const { coordinate, pixel } = evt;
-
     const vectorSource = drawRef.current;
 
     const featureAtDrawLayer = mapRef?.current.forEachFeatureAtPixel(
@@ -52,7 +59,6 @@ const Home = () => {
       selectedDrawIdRef,
       onFeatureSelect: (id) => {
         console.log("select draw ", id);
-        // setPopupData({ featureId: id });
       },
     });
 
@@ -93,6 +99,47 @@ const Home = () => {
     console.log("Feature deleted:", featureId);
   }, []);
 
+  const onContextMenu = useCallback(
+    (coordinate, map) => [
+      {
+        label: `📍 Sao chép tọa độ (Tọa độ địa lý)`,
+        onClick: () => {
+          const lonlat = transform(coordinate, "EPSG:3857", "EPSG:4326"); // WGS84
+
+          const text = `${lonlat[0].toFixed(6)},${lonlat[1].toFixed(6)}
+              `.trim();
+
+          navigator.clipboard.writeText(text);
+        },
+      },
+      {
+        label: `📍 Sao chép tọa độ (VN-2000)`,
+        onClick: () => {
+          const vn2000 = transform(coordinate, "EPSG:3857", "EPSG:9218"); // VN-2000 (zone 48)
+          const text = `
+          ${vn2000[0].toFixed(2)}
+            ,${vn2000[1].toFixed(2)}
+              `.trim();
+
+          navigator.clipboard.writeText(text);
+        },
+      },
+      {
+        label: "🔍 Zoom In",
+        onClick: () => {
+          map.getView().setZoom(map.getView().getZoom() + 1);
+        },
+      },
+      {
+        label: "🔎 Zoom Out",
+        onClick: () => {
+          map.getView().setZoom(map.getView().getZoom() - 1);
+        },
+      },
+    ],
+    []
+  );
+
   return (
     <div className="w-screen h-screen relative">
       <BaseMap
@@ -100,7 +147,7 @@ const Home = () => {
         // style={".../style.json"}
         zoom={10}
         onClick={onClickMap}
-        isDraw
+        onContextMenu={onContextMenu}
       >
         <DrawTools
           ref={drawRef}
@@ -141,7 +188,7 @@ const Home = () => {
         <SourceWrapper type="vector" id="my-vector-source" data={data}>
           <LayerWrapper
             type="vector"
-            idLayer="my-vector-layer"
+            id="my-vector-layer"
             style={
               new Style({
                 fill: new Fill({ color: "rgba(0, 123, 255, 0.3)" }),
@@ -153,32 +200,12 @@ const Home = () => {
         </SourceWrapper>
         <SourceWrapper
           type="tile-wms"
-          wmsUrl="https://ahocevar.com/geoserver/ows"
+          wmsUrl="https://ahocevar.com/geoserver/wms"
           wmsParams={wmsParams}
+          id='tile-source'
         >
-          <LayerWrapper type="tile-wms" idLayer="tileLayer1" />
+          <LayerWrapper type="tile-wms" id="tile-layer" />
         </SourceWrapper>
-
-        {/* <MapLayer
-          sourceType="vector"
-          data={data}
-          idSource="my-vector-source"
-          idLayer="my-vector-layer"
-          style={
-            new Style({
-              fill: new Fill({ color: "rgba(0, 123, 255, 0.3)" }),
-              stroke: new Stroke({ color: "#007bff", width: 2 }),
-              zIndex: 3,
-            })
-          }
-        />
-        <MapLayer
-          sourceType="wms"
-          renderType="image"
-          wmsUrl="https://ahocevar.com/geoserver/ows"
-          wmsParams={wmsParams}
-          idLayer="wms-layer"
-        /> */}
       </BaseMap>
     </div>
   );
